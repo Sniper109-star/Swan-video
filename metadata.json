@@ -1,0 +1,6 @@
+{
+  "name": "AI Video Generator",
+  "description": "State-of-the-art AI Video Suite with Alibaba Wan 2.1, Tencent HunyuanVideo (13B Dual-Stream DiT), browser-use/video-use AI Coding Agent Editor, and MuseTalk audio lip-sync.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
