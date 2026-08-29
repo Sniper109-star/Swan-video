@@ -14,6 +14,24 @@ export interface CameraParams {
 
 export function detectThemeFromPrompt(prompt: string): string {
   const p = prompt.toLowerCase();
+  if (p.includes('volcan') || p.includes('lava') || p.includes('magma') || p.includes('fire') || p.includes('ember') || p.includes('eruption')) {
+    return 'volcanic_magma';
+  }
+  if (p.includes('matrix') || p.includes('code') || p.includes('glyph') || p.includes('hacker') || p.includes('terminal') || p.includes('cyber matrix')) {
+    return 'matrix_code_rain';
+  }
+  if (p.includes('aurora') || p.includes('northern light') || p.includes('arctic') || p.includes('glacier') || p.includes('ice') || p.includes('fjord')) {
+    return 'aurora_borealis';
+  }
+  if (p.includes('warp') || p.includes('hyperdrive') || p.includes('lightspeed') || p.includes('spacetime') || p.includes('wormhole')) {
+    return 'hyperdrive_warp';
+  }
+  if (p.includes('underwater') || p.includes('abyss') || p.includes('jellyfish') || p.includes('coral') || p.includes('aquatic') || p.includes('subsea') || p.includes('deep ocean')) {
+    return 'deep_underwater';
+  }
+  if (p.includes('desert') || p.includes('dune') || p.includes('sand') || p.includes('sahara') || p.includes('pyramid') || p.includes('oasis')) {
+    return 'desert_dune_storm';
+  }
   if (p.includes('cyberpunk') || p.includes('neon') || p.includes('tokyo') || p.includes('city') || p.includes('street') || p.includes('blade runner')) {
     return 'cyberpunk_city';
   }
@@ -32,7 +50,7 @@ export function detectThemeFromPrompt(prompt: string): string {
   if (p.includes('forest') || p.includes('nature') || p.includes('tree') || p.includes('mystic') || p.includes('magic') || p.includes('jungle')) {
     return 'enchanted_forest';
   }
-  if (p.includes('tunnel') || p.includes('speed') || p.includes('hyperspace') || p.includes('data') || p.includes('digital') || p.includes('matrix')) {
+  if (p.includes('tunnel') || p.includes('speed') || p.includes('hyperspace') || p.includes('data') || p.includes('digital')) {
     return 'data_tunnel';
   }
   return 'cyberpunk_city';
@@ -70,6 +88,24 @@ export function renderProceduralFrame(
     drawImageToVideoScene(ctx, width, height, timeSec, customImage, camera);
   } else {
     switch (theme) {
+      case 'volcanic_magma':
+        drawVolcanicMagma(ctx, width, height, timeSec, camera);
+        break;
+      case 'matrix_code_rain':
+        drawMatrixCodeRain(ctx, width, height, timeSec, camera);
+        break;
+      case 'aurora_borealis':
+        drawAuroraBorealis(ctx, width, height, timeSec, camera);
+        break;
+      case 'hyperdrive_warp':
+        drawHyperdriveWarp(ctx, width, height, timeSec, camera);
+        break;
+      case 'deep_underwater':
+        drawDeepUnderwater(ctx, width, height, timeSec, camera);
+        break;
+      case 'desert_dune_storm':
+        drawDesertDuneStorm(ctx, width, height, timeSec, camera);
+        break;
       case 'space_galaxy':
         drawSpaceGalaxy(ctx, width, height, timeSec, camera);
         break;
@@ -539,6 +575,351 @@ function drawDataTunnel(ctx: CanvasRenderingContext2D, w: number, h: number, t: 
     ctx.stroke();
 
     ctx.restore();
+  }
+}
+
+function drawVolcanicMagma(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, cam: CameraParams) {
+  // Fiery volcanic ash sky
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.6);
+  skyGrad.addColorStop(0, '#0f0502');
+  skyGrad.addColorStop(0.4, '#2d0c03');
+  skyGrad.addColorStop(0.8, '#581c0c');
+  skyGrad.addColorStop(1, '#9a3412');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, h * 0.6);
+
+  // Volcanic caldera mountain silhouette
+  ctx.fillStyle = '#0a0503';
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.6);
+  ctx.lineTo(w * 0.25, h * 0.45);
+  ctx.lineTo(w * 0.42, h * 0.32);
+  ctx.lineTo(w * 0.58, h * 0.32);
+  ctx.lineTo(w * 0.75, h * 0.48);
+  ctx.lineTo(w, h * 0.6);
+  ctx.lineTo(0, h * 0.6);
+  ctx.fill();
+
+  // Erupting Magma Fountain & Ejection
+  const ventX = w * 0.5;
+  const ventY = h * 0.32;
+  const glowGrad = ctx.createRadialGradient(ventX, ventY, 10, ventX, ventY, 200);
+  glowGrad.addColorStop(0, 'rgba(254, 240, 138, 0.9)');
+  glowGrad.addColorStop(0.3, 'rgba(249, 115, 22, 0.7)');
+  glowGrad.addColorStop(0.7, 'rgba(220, 38, 38, 0.3)');
+  glowGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(ventX, ventY, 200, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Liquid Lava River Flows
+  const lavaY = h * 0.58;
+  ctx.fillStyle = '#1c0702';
+  ctx.fillRect(0, lavaY, w, h - lavaY);
+
+  for (let r = 0; r < 5; r++) {
+    const flowX = w * (0.2 + r * 0.15) + Math.sin(t * 1.5 + r) * 20;
+    ctx.strokeStyle = r % 2 === 0 ? '#ea580c' : '#facc15';
+    ctx.lineWidth = 12 + Math.sin(t * 3 + r) * 4;
+    ctx.beginPath();
+    ctx.moveTo(ventX + (r - 2) * 25, ventY);
+    ctx.quadraticCurveTo(flowX, h * 0.7, (r * (w / 4)) - 20, h);
+    ctx.stroke();
+  }
+
+  // Rising fiery sparks & ash embers
+  for (let p = 0; p < 60; p++) {
+    const px = ventX + (Math.sin(p * 37 + t * 2) * (w * 0.4));
+    const py = ((ventY + 150 - (t * 160 * cam.speed + p * 25)) % h);
+    const size = (Math.sin(t * 5 + p) * 2 + 3);
+    ctx.fillStyle = p % 3 === 0 ? '#fef08a' : p % 2 === 0 ? '#fb923c' : '#ef4444';
+    ctx.beginPath();
+    ctx.arc(px, py < 0 ? py + h : py, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawMatrixCodeRain(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, cam: CameraParams) {
+  // Pitch black cyber terminal
+  ctx.fillStyle = '#020904';
+  ctx.fillRect(0, 0, w, h);
+
+  const glyphChars = '0123456789ABCDEFｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ';
+  const cols = Math.floor(w / 22);
+  ctx.font = 'bold 15px monospace';
+
+  for (let c = 0; c < cols; c++) {
+    const speed = (1 + (c % 4) * 0.5) * 180 * cam.speed;
+    const colY = (t * speed + c * 77) % (h + 300);
+    const length = 16 + (c % 8);
+
+    for (let r = 0; r < length; r++) {
+      const glyphY = colY - (r * 18);
+      if (glyphY > 0 && glyphY < h) {
+        const charIdx = (Math.floor(t * 8) + c + r) % glyphChars.length;
+        const ch = glyphChars[charIdx];
+
+        if (r === 0) {
+          ctx.fillStyle = '#ffffff'; // Leading bright white glyph
+        } else if (r < 3) {
+          ctx.fillStyle = '#86efac'; // Neon lime
+        } else {
+          const alpha = Math.max(0.1, 1 - (r / length));
+          ctx.fillStyle = `rgba(34, 197, 94, ${alpha})`;
+        }
+        ctx.fillText(ch, c * 22 + 4, glyphY);
+      }
+    }
+  }
+
+  // 3D Rotating Cyber Cube in Center
+  const cx = w / 2;
+  const cy = h / 2;
+  const cubeSize = Math.min(w, h) * 0.22;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(t * 0.7 * cam.speed);
+  ctx.strokeStyle = '#4ade80';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(-cubeSize / 2, -cubeSize / 2, cubeSize, cubeSize);
+  ctx.rotate(Math.PI / 4);
+  ctx.strokeStyle = 'rgba(74, 222, 128, 0.4)';
+  ctx.strokeRect(-cubeSize * 0.4, -cubeSize * 0.4, cubeSize * 0.8, cubeSize * 0.8);
+  ctx.restore();
+}
+
+function drawAuroraBorealis(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, cam: CameraParams) {
+  // Deep Arctic Midnight
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+  bgGrad.addColorStop(0, '#01050e');
+  bgGrad.addColorStop(0.5, '#041824');
+  bgGrad.addColorStop(1, '#020a10');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Starfield
+  for (let i = 0; i < 70; i++) {
+    const sx = (Math.sin(i * 99) * 0.5 + 0.5) * w;
+    const sy = (Math.cos(i * 53) * 0.5 + 0.5) * (h * 0.6);
+    ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#a7f3d0';
+    ctx.beginPath();
+    ctx.arc(sx, sy, Math.sin(t * 2 + i) * 1 + 1.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Shimmering Aurora Wave Curtains
+  for (let layer = 0; layer < 4; layer++) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+
+    const waveOffset = t * 0.6 * (layer + 1) * cam.speed;
+    for (let x = 0; x <= w; x += 20) {
+      const y = h * 0.18 + Math.sin(x * 0.005 + waveOffset) * 60 + Math.cos(x * 0.01 + layer) * 35;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, 0);
+    ctx.closePath();
+
+    const auroraGrad = ctx.createLinearGradient(0, 0, 0, h * 0.45);
+    if (layer % 2 === 0) {
+      auroraGrad.addColorStop(0, 'rgba(52, 211, 153, 0)');
+      auroraGrad.addColorStop(0.5, 'rgba(52, 211, 153, 0.45)');
+      auroraGrad.addColorStop(1, 'rgba(6, 182, 212, 0)');
+    } else {
+      auroraGrad.addColorStop(0, 'rgba(192, 132, 252, 0)');
+      auroraGrad.addColorStop(0.6, 'rgba(168, 85, 247, 0.35)');
+      auroraGrad.addColorStop(1, 'rgba(59, 130, 246, 0)');
+    }
+    ctx.fillStyle = auroraGrad;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Snowy Glacial Mountain Ridge
+  const mountainY = h * 0.62;
+  ctx.fillStyle = '#06131c';
+  ctx.beginPath();
+  ctx.moveTo(0, mountainY);
+  ctx.lineTo(w * 0.15, mountainY - 90);
+  ctx.lineTo(w * 0.32, mountainY - 30);
+  ctx.lineTo(w * 0.55, mountainY - 120);
+  ctx.lineTo(w * 0.78, mountainY - 40);
+  ctx.lineTo(w, mountainY - 80);
+  ctx.lineTo(w, h);
+  ctx.lineTo(0, h);
+  ctx.fill();
+
+  // Lake Reflection Surface
+  const lakeGrad = ctx.createLinearGradient(0, mountainY, 0, h);
+  lakeGrad.addColorStop(0, '#04272c');
+  lakeGrad.addColorStop(1, '#020b12');
+  ctx.fillStyle = lakeGrad;
+  ctx.fillRect(0, mountainY, w, h - mountainY);
+}
+
+function drawHyperdriveWarp(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, cam: CameraParams) {
+  ctx.fillStyle = '#010206';
+  ctx.fillRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h / 2;
+  const streakCount = 90;
+
+  for (let i = 0; i < streakCount; i++) {
+    const angle = (i * Math.PI * 2) / streakCount + (t * 0.05 * cam.speed);
+    const speed = 350 * cam.speed;
+    const dist = ((i * 23 + t * speed) % (Math.max(w, h) * 0.9));
+    const tailDist = Math.max(0, dist - 80 * cam.speed);
+
+    const x1 = cx + Math.cos(angle) * tailDist;
+    const y1 = cy + Math.sin(angle) * tailDist;
+    const x2 = cx + Math.cos(angle) * dist;
+    const y2 = cy + Math.sin(angle) * dist;
+
+    const streakGrad = ctx.createLinearGradient(x1, y1, x2, y2);
+    streakGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+    streakGrad.addColorStop(0.5, i % 2 === 0 ? 'rgba(56, 189, 248, 0.8)' : 'rgba(168, 85, 247, 0.8)');
+    streakGrad.addColorStop(1, '#ffffff');
+
+    ctx.strokeStyle = streakGrad;
+    ctx.lineWidth = Math.min(5, (dist / 100) + 1);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  // Central Event Horizon Singularity
+  const coreGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 70);
+  coreGrad.addColorStop(0, '#ffffff');
+  coreGrad.addColorStop(0.4, '#38bdf8');
+  coreGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = coreGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 70, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawDeepUnderwater(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, cam: CameraParams) {
+  // Deep Abyssal Blue
+  const seaGrad = ctx.createLinearGradient(0, 0, 0, h);
+  seaGrad.addColorStop(0, '#034159');
+  seaGrad.addColorStop(0.4, '#022135');
+  seaGrad.addColorStop(1, '#010c14');
+  ctx.fillStyle = seaGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Volumetric Water Sunbeams from Surface
+  for (let b = 0; b < 6; b++) {
+    const beamX = (w * 0.15) + b * (w * 0.16) + Math.sin(t * 0.8 + b) * 30;
+    const beamGrad = ctx.createLinearGradient(beamX, 0, beamX + 70, h);
+    beamGrad.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+    beamGrad.addColorStop(0.6, 'rgba(20, 184, 166, 0.12)');
+    beamGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(beamX - 30, 0);
+    ctx.lineTo(beamX + 30, 0);
+    ctx.lineTo(beamX + 160, h);
+    ctx.lineTo(beamX + 80, h);
+    ctx.fill();
+  }
+
+  // Floating Bioluminescent Jellyfish
+  for (let j = 0; j < 5; j++) {
+    const jx = (w * (0.2 + j * 0.18) + Math.sin(t * 1.2 + j) * 40);
+    const jy = ((j * 120 + t * 45 * cam.speed) % (h + 100)) - 50;
+    const jRadius = 24 + (j % 3) * 6;
+
+    // Jelly bell dome
+    const jGrad = ctx.createRadialGradient(jx, jy, 4, jx, jy, jRadius);
+    jGrad.addColorStop(0, '#ffffff');
+    jGrad.addColorStop(0.5, j % 2 === 0 ? 'rgba(6, 182, 212, 0.85)' : 'rgba(236, 72, 153, 0.85)');
+    jGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = jGrad;
+    ctx.beginPath();
+    ctx.arc(jx, jy, jRadius, Math.PI, 0, false);
+    ctx.fill();
+
+    // Trailing tentacles
+    ctx.strokeStyle = j % 2 === 0 ? 'rgba(6, 182, 212, 0.6)' : 'rgba(236, 72, 153, 0.6)';
+    ctx.lineWidth = 2;
+    for (let tent = -2; tent <= 2; tent++) {
+      ctx.beginPath();
+      ctx.moveTo(jx + tent * 6, jy);
+      ctx.quadraticCurveTo(
+        jx + tent * 10 + Math.sin(t * 4 + tent) * 15,
+        jy + 35,
+        jx + tent * 8,
+        jy + 70
+      );
+      ctx.stroke();
+    }
+  }
+
+  // Rising Air Bubbles
+  for (let b = 0; b < 25; b++) {
+    const bx = (Math.sin(b * 41 + t) * 0.5 + 0.5) * w;
+    const by = ((b * 35 - t * 80 * cam.speed) % h + h) % h;
+    ctx.strokeStyle = 'rgba(224, 242, 254, 0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(bx, by, Math.sin(t + b) * 2 + 4, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function drawDesertDuneStorm(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, cam: CameraParams) {
+  // Scorching Desert Sunset Sky
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.55);
+  skyGrad.addColorStop(0, '#451a03');
+  skyGrad.addColorStop(0.4, '#9a3412');
+  skyGrad.addColorStop(0.8, '#d97706');
+  skyGrad.addColorStop(1, '#fde68a');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, w, h * 0.55);
+
+  // Blazing Golden Sun
+  const sunX = w * 0.65;
+  const sunY = h * 0.45;
+  const sunGrad = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 180);
+  sunGrad.addColorStop(0, '#ffffff');
+  sunGrad.addColorStop(0.4, 'rgba(251, 191, 36, 0.8)');
+  sunGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 120, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Multi-layered Sand Dunes with Light & Shadow
+  const duneLayers = 4;
+  for (let d = 0; d < duneLayers; d++) {
+    const baseY = h * (0.48 + d * 0.12);
+    ctx.fillStyle = d === 0 ? '#78350f' : d === 1 ? '#92400e' : d === 2 ? '#b45309' : '#d97706';
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    ctx.lineTo(0, baseY);
+
+    const duneOffset = d * 100 + t * 20 * (duneLayers - d) * cam.speed;
+    for (let x = 0; x <= w; x += 30) {
+      const y = baseY + Math.sin((x + duneOffset) * 0.005) * 45 + Math.cos((x + duneOffset) * 0.009) * 20;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Blowing Sand Particles & Dust Haze
+  for (let s = 0; s < 45; s++) {
+    const sx = ((s * 35 - t * 280 * cam.speed) % (w + 100) + w + 100) % (w + 100) - 50;
+    const sy = h * 0.4 + (Math.sin(s * 19 + t * 3) * 0.5 + 0.5) * (h * 0.55);
+    ctx.fillStyle = 'rgba(254, 243, 199, 0.45)';
+    ctx.beginPath();
+    ctx.arc(sx, sy, Math.random() * 2.5 + 1.5, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 

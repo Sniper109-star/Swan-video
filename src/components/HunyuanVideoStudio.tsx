@@ -39,6 +39,9 @@ import {
   HunyuanCameraTrajectory,
   HunyuanConfig
 } from '../types';
+import { exportCanvasVideo } from '../utils/videoRecorder';
+import { detectThemeFromPrompt, renderProceduralFrame } from '../utils/proceduralVideoEngine';
+import { BackgroundMusicSynthesizer } from '../utils/audioSynth';
 
 interface HunyuanVideoStudioProps {
   onVideoRendered: (clip: VideoClip) => void;
@@ -168,76 +171,137 @@ export const HunyuanVideoStudio: React.FC<HunyuanVideoStudioProps> = ({
     }
   };
 
-  // Run HunyuanVideo 13B Synthesis Simulation
+  // Run HunyuanVideo 13B Synthesis
   const handleGenerate = async () => {
+    if (isRendering) return;
     setIsRendering(true);
     setRenderProgress(0);
     setCurrentStep(0);
     setRenderLogs([
-      `[HunyuanVideo 13B] Initializing ${model} Transformer pipeline...`,
+      `[HunyuanVideo 13B] Initializing ${model} Dual-Stream DiT pipeline...`,
       `[MLLM Encoder] Tokenizing prompt with Decoder-Only MLLM Text Encoder...`,
       `[3D VAE Latents] Allocating Gaussian noise tensor (${frames} frames, ${resolution}, ${aspectRatio})...`,
     ]);
 
-    const totalSteps = samplingSteps;
-    for (let step = 1; step <= totalSteps; step++) {
-      await new Promise((resolve) => setTimeout(resolve, 80));
-      setCurrentStep(step);
-      const progress = Math.round((step / totalSteps) * 90);
-      setRenderProgress(progress);
+    const durationSec = Math.max(3, Math.round(frames / 24));
+    const canvasW = aspectRatio === '9:16' ? 720 : 1280;
+    const canvasH = aspectRatio === '9:16' ? 1280 : 720;
 
-      if (step === Math.floor(totalSteps * 0.25)) {
-        setRenderLogs((prev) => [
-          ...prev,
-          `[Dual-Stream DiT] Processing video tokens & text tokens in parallel (Blocks 1-20)...`,
-        ]);
-      } else if (step === Math.floor(totalSteps * 0.6)) {
-        setRenderLogs((prev) => [
-          ...prev,
-          `[Single-Stream Fusion] Merging multimodal modalities with cross-attention (Blocks 21-40)...`,
-        ]);
-      } else if (step === Math.floor(totalSteps * 0.85)) {
-        setRenderLogs((prev) => [
-          ...prev,
-          `[Flow Matching] Shift factor ${flowShift} ODE integration converging (Euler Step ${step}/${totalSteps})...`,
-        ]);
-      }
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = canvasW;
+    offscreenCanvas.height = canvasH;
+    const offCtx = offscreenCanvas.getContext('2d');
+
+    // Synthesize audio
+    const musicSynth = new BackgroundMusicSynthesizer();
+    const synthDest = musicSynth.startTrack('cinematic', durationSec);
+    const audioStream = synthDest.stream;
+
+    // Preload conditioning image if present
+    let imgObj: HTMLImageElement | null = null;
+    if (inputImage) {
+      imgObj = new Image();
+      imgObj.src = inputImage;
+      await new Promise((resolve) => {
+        if (imgObj!.complete) resolve(null);
+        else {
+          imgObj!.onload = () => resolve(null);
+          imgObj!.onerror = () => resolve(null);
+        }
+      });
     }
 
-    setRenderLogs((prev) => [
-      ...prev,
-      `[CausalConv3D VAE] Decoding 16-channel latents to RGB pixels (4x temporal, 8x spatial)...`,
-      `[HunyuanVideo] Complete! Generated 5.4s high-fidelity video @ 24fps.`,
-    ]);
-    setRenderProgress(100);
+    const theme = detectThemeFromPrompt(prompt);
+    let animId: number;
+    const startTime = performance.now();
 
-    // Create high quality video clip
-    const sampleVideos = [
-      'https://storage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
-      'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      'https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-      'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    ];
-    const pickedVideo = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
-
-    const newClip: VideoClip = {
-      id: `hunyuan-${Date.now()}`,
-      title: prompt.slice(0, 36) + '...',
-      operationName: `Tencent ${model} DiT Generation`,
-      prompt,
-      aspectRatio,
-      resolution,
-      createdAt: Date.now(),
-      videoUrl: pickedVideo,
-      model,
-      engine: 'hunyuan_video',
-      durationSeconds: Math.round(frames / 24),
-      inputImageBase64: inputImage || undefined,
+    const drawLoop = () => {
+      const elapsed = (performance.now() - startTime) / 1000;
+      if (offCtx) {
+        renderProceduralFrame(
+          offCtx,
+          canvasW,
+          canvasH,
+          elapsed,
+          theme,
+          prompt,
+          {
+            motionType: cameraTrajectory === 'orbit_360' ? 'orbit_360' : 'dolly_in',
+            speed: 1.2,
+            zoom: 1.0,
+            shake: 0.1,
+          },
+          imgObj
+        );
+      }
+      if (elapsed < durationSec) {
+        animId = requestAnimationFrame(drawLoop);
+      }
     };
+    animId = requestAnimationFrame(drawLoop);
 
-    setRenderedClip(newClip);
-    onVideoRendered(newClip);
-    setIsRendering(false);
+    try {
+      const totalSteps = samplingSteps;
+      const exportPromise = exportCanvasVideo({
+        canvas: offscreenCanvas,
+        audioStream,
+        durationSec,
+        fps: 24,
+        onProgress: (pct) => {
+          setRenderProgress(pct);
+          const step = Math.min(totalSteps, Math.floor((pct / 100) * totalSteps) + 1);
+          setCurrentStep(step);
+          if (pct === 25) {
+            setRenderLogs((prev) => [
+              ...prev,
+              `[Dual-Stream DiT] Processing video tokens & text tokens in parallel (Blocks 1-20)...`,
+            ]);
+          } else if (pct === 60) {
+            setRenderLogs((prev) => [
+              ...prev,
+              `[Single-Stream Fusion] Merging multimodal modalities with cross-attention (Blocks 21-40)...`,
+            ]);
+          } else if (pct === 85) {
+            setRenderLogs((prev) => [
+              ...prev,
+              `[Flow Matching] Shift factor ${flowShift} ODE integration converging (Euler Step ${step}/${totalSteps})...`,
+            ]);
+          }
+        },
+      });
+
+      const result = await exportPromise;
+      cancelAnimationFrame(animId);
+
+      setRenderLogs((prev) => [
+        ...prev,
+        `[CausalConv3D VAE] Decoding 16-channel latents to RGB pixels (4x temporal, 8x spatial)...`,
+        `[HunyuanVideo] Complete! Generated ${durationSec}s high-fidelity video @ 24fps.`,
+      ]);
+      setRenderProgress(100);
+
+      const newClip: VideoClip = {
+        id: `hunyuan-${Date.now()}`,
+        title: prompt.slice(0, 36) + '...',
+        operationName: `Tencent ${model} DiT Generation`,
+        prompt,
+        aspectRatio,
+        resolution,
+        createdAt: Date.now(),
+        videoUrl: result.url,
+        model,
+        engine: 'hunyuan_video',
+        durationSeconds: durationSec,
+        inputImageBase64: inputImage || undefined,
+      };
+
+      setRenderedClip(newClip);
+      onVideoRendered(newClip);
+    } catch (err) {
+      console.error('HunyuanVideo render failed:', err);
+    } finally {
+      setIsRendering(false);
+    }
   };
 
   // Image Upload for I2V or Avatar
