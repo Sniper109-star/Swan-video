@@ -1,0 +1,116 @@
+name: AI Video Generation & CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Video prompt to generate'
+        required: true
+        default: 'Cinematic aerial flyover of a futuristic cyberpunk city with neon reflections in rain'
+        type: string
+      model:
+        description: 'Target Video Foundation Model / Engine'
+        required: true
+        default: 'Wan2.1-T2V-14B'
+        type: choice
+        options:
+          - 'Wan2.1-T2V-14B'
+          - 'Wan2.1-T2V-1.3B'
+          - 'Wan2.1-I2V-14B'
+          - 'HunyuanVideo-13B'
+          - 'HunyuanVideo-I2V'
+          - 'video-use-agent'
+          - 'procedural-neural'
+      aspect_ratio:
+        description: 'Aspect Ratio'
+        required: true
+        default: '16:9'
+        type: choice
+        options:
+          - '16:9'
+          - '9:16'
+      duration_seconds:
+        description: 'Duration in seconds'
+        required: true
+        default: '5'
+        type: string
+      sampling_steps:
+        description: 'Diffusion / Flow Matching sampling steps'
+        required: false
+        default: '40'
+        type: string
+
+jobs:
+  build-and-lint:
+    name: 🏗️ Build & Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci || npm install
+
+      - name: 🔍 Typecheck & Lint
+        run: npm run lint
+
+      - name: ⚡ Build Application Bundle
+        run: npm run build
+
+  generate-video-artifact:
+    name: 🎬 Headless Video Generation Engine
+    runs-on: ubuntu-latest
+    needs: build-and-lint
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci || npm install
+
+      - name: 🎥 Install FFmpeg & Media Utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: 🚀 Run AI Video Generation Script
+        id: render_video
+        env:
+          PROMPT: ${{ github.event.inputs.prompt || 'Cinematic aerial flyover of a futuristic cyberpunk city with neon reflections in rain' }}
+          MODEL: ${{ github.event.inputs.model || 'Wan2.1-T2V-14B' }}
+          ASPECT_RATIO: ${{ github.event.inputs.aspect_ratio || '16:9' }}
+          DURATION: ${{ github.event.inputs.duration_seconds || '5' }}
+          STEPS: ${{ github.event.inputs.sampling_steps || '40' }}
+        run: |
+          mkdir -p output_renders
+          node scripts/generate-video.js \
+            --prompt "$PROMPT" \
+            --model "$MODEL" \
+            --aspect-ratio "$ASPECT_RATIO" \
+            --duration "$DURATION" \
+            --steps "$STEPS" \
+            --output output_renders/generated_video.mp4
+
+      - name: 📤 Upload Rendered Video Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-ai-video-${{ github.run_id }}
+          path: output_renders/
+          retention-days: 14
+          if-no-files-found: warn
